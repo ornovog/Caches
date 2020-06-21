@@ -1,8 +1,8 @@
 package Caches
 
 const (
-	indexBits = 63
-	tagBits = 4294967232
+	indexBits = cacheSize - 1
+	tagBits = addressMaxNumber - indexBits
 )
 
 type DMCacheLine struct {

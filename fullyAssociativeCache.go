@@ -24,7 +24,7 @@ func (fAC *fullyAssociativeCache) GetData(address uint32) (float64, bool){
 	if !fAC.isStorageFull{
 		for i, line := range fAC.storage {
 			if line.useNumber == 0 {
-				fAC.updateInIndex(i, address, data)
+				fAC.updateInIndex(uint32(i), address, data)
 				return data, false
 			}
 		}
@@ -51,13 +51,13 @@ func (fAC *fullyAssociativeCache) newUseNumber()uint64{
 	return fAC.useNumber
 }
 
-func (fAC *fullyAssociativeCache) updateInIndex(index int, address uint32, data float64){
+func (fAC *fullyAssociativeCache) updateInIndex(index uint32, address uint32, data float64){
 	fAC.storage[index].useNumber = fAC.newUseNumber()
 	fAC.storage[index].address = address
 	fAC.storage[index].data = data
 }
 
-func (fAC *fullyAssociativeCache) lRU() int {
+func (fAC *fullyAssociativeCache) lRU() uint32 {
 	indexOfLRU := 0
 	minUseNumber := fAC.storage[0].useNumber
 
@@ -67,7 +67,7 @@ func (fAC *fullyAssociativeCache) lRU() int {
 			minUseNumber = line.useNumber
 		}
 	}
-	return indexOfLRU
+	return uint32(indexOfLRU)
 }
 
 

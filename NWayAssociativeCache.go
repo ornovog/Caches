@@ -2,8 +2,8 @@ package Caches
 
 const (
 	numOfWays = 2
-	wayNumberBits = 1
-	twoWayTagBits = 4294967294
+	NWayIndexBits = numOfWays-1
+	NWayTagBits = addressMaxNumber-NWayIndexBits
 )
 
 type NWACacheLine struct {
@@ -20,26 +20,26 @@ type NWayAssociativeCache struct{
 }
 
 func (nWAC *NWayAssociativeCache) GetData(address uint32) (float64, bool){
-	wayNum := address & wayNumberBits
-	tag := address & twoWayTagBits
+	wayIndex := address & NWayIndexBits
+	tag := address & NWayTagBits
 
-	data, exist := nWAC.getExistingLine(wayNum,tag)
+	data, exist := nWAC.getExistingLine(wayIndex,tag)
 	if exist {
 		return data, exist
 	}
 
 	data = nWAC.mM.Fetch(address)
 
-	if !nWAC.isStorageFull[wayNum]{
-		for index, line := range nWAC.storage[wayNum] {
+	if !nWAC.isStorageFull[wayIndex]{
+		for index, line := range nWAC.storage[wayIndex] {
 			if line.useNumber == 0 {
-				nWAC.updateInIndex(wayNum, uint32(index), tag, data)
+				nWAC.updateInIndex(wayIndex, uint32(index), tag, data)
 				return data, false
 			}
 		}
 	}else {
-		indexOfLRU := nWAC.lRU(wayNum)
-		nWAC.updateInIndex(wayNum, indexOfLRU, tag, data)
+		indexOfLRU := nWAC.lRU(wayIndex)
+		nWAC.updateInIndex(wayIndex, indexOfLRU, tag, data)
 	}
 	return data, false
 }
