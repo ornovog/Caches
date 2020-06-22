@@ -7,7 +7,7 @@ const (
 
 type DMCacheLine struct {
 	tag uint32
-	data float64
+	data byte
 }
 
 type directMappedCache struct{
@@ -15,18 +15,39 @@ type directMappedCache struct{
 	mM *mainMemory
 }
 
-func (dMC *directMappedCache) GetData(address uint32) (float64, bool){
-	index := address & indexBits
-	tag := address & tagBits
-	line := dMC.storage[index]
+func (dMC *directMappedCache) GetData(address uint32) (byte, bool){
+	index, tag, line := dMC.extractIndexTagAndLine(address)
 
 	if line.tag == tag{
 		return line.data, true
 	}else {
+		dMC.mM.Store(line.tag+index,line.data)
 		data := dMC.mM.Fetch(address)
-		dMC.storage[index].data = data
-		dMC.storage[index].tag = tag
+		line.data = data
+		line.tag = tag
 
 		return data, false
 	}
+}
+
+func (dMC *directMappedCache) Update(address uint32, newData byte) bool{
+	index, tag, line := dMC.extractIndexTagAndLine(address)
+
+	if line.tag == tag {
+		line.data = newData
+		return true
+	} else {
+		dMC.mM.Store(line.tag+index, line.data)
+		line.data = newData
+		line.tag = tag
+
+		return false
+	}
+}
+
+func (dMC *directMappedCache) extractIndexTagAndLine(address uint32) (uint32, uint32, *DMCacheLine) {
+	index := address & indexBits
+	tag := address & tagBits
+	line := &dMC.storage[index]
+	return index, tag, line
 }
