@@ -35,18 +35,21 @@ func TestDirectMappedCache_GetData(t *testing.T) {
 	assert.EqualValues(t,expectedVal,val)
 	assert.EqualValues(t,true,hit)
 
-	expectedVal = byte(rand.Intn(math.MaxInt8+1))
-	mM.Store(collisionAddress,expectedVal)
+	secondExpectedVal := byte(rand.Intn(math.MaxInt8+1))
+	mM.Store(collisionAddress,secondExpectedVal)
 	val, hit = dMC.GetData(collisionAddress)
-	assert.EqualValues(t,expectedVal,val)
+	assert.EqualValues(t,secondExpectedVal,val)
 	assert.EqualValues(t,false,hit)
+	assert.EqualValues(t,expectedVal,mM.Fetch(address))
 
 	val, hit = dMC.GetData(collisionAddress)
-	assert.EqualValues(t,val,expectedVal)
+	assert.EqualValues(t,val,secondExpectedVal)
 	assert.EqualValues(t,true,hit)
 
 	val, hit = dMC.GetData(address)
+	assert.EqualValues(t,val,expectedVal)
 	assert.EqualValues(t,false,hit)
+	assert.EqualValues(t,secondExpectedVal,mM.Fetch(collisionAddress))
 }
 
 func TestFullyAssociativeCache_GetData(t *testing.T) {
