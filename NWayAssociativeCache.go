@@ -13,10 +13,15 @@ type NWACacheLine struct {
 }
 
 type NWayAssociativeCache struct{
-	useNumber uint64
-	storage [numOfWays][cacheSize/numOfWays]NWACacheLine
+	useNumberCounter uint64
+	storage *[numOfWays][cacheSize/numOfWays]NWACacheLine
 	isStorageFull [numOfWays]bool
-	mM *mainMemory
+	mainMemory *mainMemory
+}
+
+func (nWAC *NWayAssociativeCache)Init(mainMemory *mainMemory){
+	nWAC.storage = &[numOfWays][cacheSize/numOfWays]NWACacheLine{}
+	nWAC.mainMemory = mainMemory
 }
 
 func (nWAC *NWayAssociativeCache) GetData(address uint32) (byte, bool){
@@ -27,7 +32,7 @@ func (nWAC *NWayAssociativeCache) GetData(address uint32) (byte, bool){
 		return line.data, exist
 	}
 
-	data := nWAC.mM.Fetch(address)
+	data := nWAC.mainMemory.Fetch(address)
 
 	if !nWAC.isStorageFull[wayIndex]{
 		for index, line := range nWAC.storage[wayIndex] {
@@ -52,25 +57,27 @@ func extractWayIndexAndTag(address uint32) (uint32, uint32) {
 
 func (nWAC *NWayAssociativeCache) getExistingLine(wayNum, tag uint32) (*NWACacheLine, bool) {
 	for _, line := range nWAC.storage[wayNum] {
-		if line.tag == tag {
+		if line.tag == tag && line.useNumber!=0{
 			line.useNumber = nWAC.newUseNumber()
 			return &line, true
 		}
 	}
 
-	return 0, false
+	return nil, false
 }
 
 func (nWAC *NWayAssociativeCache) newUseNumber()uint64{
-	nWAC.useNumber++
-	return nWAC.useNumber
+	nWAC.useNumberCounter++
+	return nWAC.useNumberCounter
 }
 
 func (nWAC *NWayAssociativeCache) newAddressInLine(wayIndex, index, tag uint32, data byte){
 	line := &nWAC.storage[wayIndex][index]
-	oldAddress := line.tag + wayIndex
-	oldData := line.data
-	nWAC.mM.Store(oldAddress,oldData)
+	if line.useNumber != 0{
+		oldAddress := line.tag + wayIndex
+		oldData := line.data
+		nWAC.mainMemory.Store(oldAddress,oldData)
+	}
 
 	line.useNumber = nWAC.newUseNumber()
 	line.tag = tag

@@ -6,25 +6,35 @@ const (
 )
 
 type DMCacheLine struct {
+	valid bool
 	tag uint32
 	data byte
 }
 
 type directMappedCache struct{
-	storage [cacheSize]DMCacheLine
-	mM *mainMemory
+	storage *[cacheSize]DMCacheLine
+	mainMemory *mainMemory
+}
+
+func (dMC *directMappedCache)Init(mainMemory *mainMemory){
+	dMC.storage = &[cacheSize]DMCacheLine{}
+	dMC.mainMemory = mainMemory
 }
 
 func (dMC *directMappedCache) GetData(address uint32) (byte, bool){
 	index, tag, line := dMC.extractIndexTagAndLine(address)
 
-	if line.tag == tag{
+	if line.tag == tag && line.valid{
 		return line.data, true
 	}else {
-		dMC.mM.Store(line.tag+index,line.data)
-		data := dMC.mM.Fetch(address)
+		if line.valid{
+			dMC.mainMemory.Store(line.tag+index,line.data)
+		}
+
+		data := dMC.mainMemory.Fetch(address)
 		line.data = data
 		line.tag = tag
+		line.valid = true
 
 		return data, false
 	}
@@ -37,7 +47,7 @@ func (dMC *directMappedCache) Update(address uint32, newData byte) bool{
 		line.data = newData
 		return true
 	} else {
-		dMC.mM.Store(line.tag+index, line.data)
+		dMC.mainMemory.Store(line.tag+index, line.data)
 		line.data = newData
 		line.tag = tag
 

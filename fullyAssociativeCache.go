@@ -7,10 +7,15 @@ type FACacheLine struct {
 }
 
 type fullyAssociativeCache struct{
-	useNumber uint64
-	storage [cacheSize]FACacheLine
+	useNumberCounter uint64
+	storage *[cacheSize]FACacheLine
 	isStorageFull bool
-	mM *mainMemory
+	mainMemory *mainMemory
+}
+
+func (fAC *fullyAssociativeCache)Init(mainMemory *mainMemory){
+	fAC.storage = &[cacheSize]FACacheLine{}
+	fAC.mainMemory = mainMemory
 }
 
 func (fAC *fullyAssociativeCache) GetData(address uint32) (byte, bool){
@@ -19,7 +24,7 @@ func (fAC *fullyAssociativeCache) GetData(address uint32) (byte, bool){
 		return line.data, exist
 	}
 
-	data := fAC.mM.Fetch(address)
+	data := fAC.mainMemory.Fetch(address)
 
 	if !fAC.isStorageFull{
 		for i, line := range fAC.storage {
@@ -37,7 +42,7 @@ func (fAC *fullyAssociativeCache) GetData(address uint32) (byte, bool){
 
 func (fAC *fullyAssociativeCache) getExistingLine(address uint32) (*FACacheLine, bool) {
 	for _, line := range fAC.storage {
-		if line.address == address {
+		if line.address == address && line.useNumber!=0{
 			line.useNumber = fAC.newUseNumber()
 			return &line, true
 		}
@@ -47,15 +52,17 @@ func (fAC *fullyAssociativeCache) getExistingLine(address uint32) (*FACacheLine,
 }
 
 func (fAC *fullyAssociativeCache) newUseNumber()uint64{
-	fAC.useNumber++
-	return fAC.useNumber
+	fAC.useNumberCounter++
+	return fAC.useNumberCounter
 }
 
 func (fAC *fullyAssociativeCache) newAddressInLine(index uint32, address uint32, data byte){
 	line := &fAC.storage[index]
-	oldAddress := line.address
-	oldData := line.data
-	fAC.mM.Store(oldAddress,oldData)
+	if line.useNumber !=0{
+		oldAddress := line.address
+		oldData := line.data
+		fAC.mainMemory.Store(oldAddress,oldData)
+	}
 
 	line.useNumber = fAC.newUseNumber()
 	line.address = address
