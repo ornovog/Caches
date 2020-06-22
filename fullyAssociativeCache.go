@@ -18,7 +18,7 @@ func (fAC *fullyAssociativeCache)Init(mainMemory *mainMemory){
 	fAC.mainMemory = mainMemory
 }
 
-func (fAC *fullyAssociativeCache) GetData(address uint32) (byte, bool){
+func (fAC *fullyAssociativeCache) Fetch(address uint32) (byte, bool){
 	line, exist := fAC.getExistingLine(address)
 	if exist {
 		return line.data, exist
@@ -33,18 +33,21 @@ func (fAC *fullyAssociativeCache) GetData(address uint32) (byte, bool){
 				return data, false
 			}
 		}
-	}else {
-		indexOfLRU := fAC.lRU()
-		fAC.newAddressInLine(indexOfLRU, address, data)
+
+		fAC.isStorageFull = true
 	}
+
+	indexOfLRU := fAC.lRU()
+	fAC.newAddressInLine(indexOfLRU, address, data)
+
 	return data, false
 }
 
 func (fAC *fullyAssociativeCache) getExistingLine(address uint32) (*FACacheLine, bool) {
-	for _, line := range fAC.storage {
+	for i, line := range fAC.storage {
 		if line.address == address && line.useNumber!=0{
-			line.useNumber = fAC.newUseNumber()
-			return &line, true
+			fAC.storage[i].useNumber = fAC.newUseNumber()
+			return &fAC.storage[i], true
 		}
 	}
 
@@ -72,17 +75,17 @@ func (fAC *fullyAssociativeCache) newAddressInLine(index uint32, address uint32,
 func (fAC *fullyAssociativeCache) lRU() uint32 {
 	indexOfLRU := 0
 	minUseNumber := fAC.storage[0].useNumber
-
 	for i, line := range fAC.storage {
 		if line.useNumber < minUseNumber {
 			indexOfLRU = i
 			minUseNumber = line.useNumber
 		}
 	}
+
 	return uint32(indexOfLRU)
 }
 
-func (fAC *fullyAssociativeCache) Update(address uint32, newData byte) bool{
+func (fAC *fullyAssociativeCache) Store(address uint32, newData byte) bool{
 	line, exist := fAC.getExistingLine(address)
 	if exist {
 		line.data = newData
@@ -96,10 +99,12 @@ func (fAC *fullyAssociativeCache) Update(address uint32, newData byte) bool{
 				return false
 			}
 		}
-	}else {
-		indexOfLRU := fAC.lRU()
-		fAC.newAddressInLine(indexOfLRU, address, newData)
+		fAC.isStorageFull = true
 	}
+
+	indexOfLRU := fAC.lRU()
+	fAC.newAddressInLine(indexOfLRU, address, newData)
+
 	return false
 }
 

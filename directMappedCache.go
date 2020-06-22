@@ -21,7 +21,7 @@ func (dMC *directMappedCache)Init(mainMemory *mainMemory){
 	dMC.mainMemory = mainMemory
 }
 
-func (dMC *directMappedCache) GetData(address uint32) (byte, bool){
+func (dMC *directMappedCache) Fetch(address uint32) (byte, bool){
 	index, tag, line := dMC.extractIndexTagAndLine(address)
 
 	if line.tag == tag && line.valid{
@@ -40,7 +40,7 @@ func (dMC *directMappedCache) GetData(address uint32) (byte, bool){
 	}
 }
 
-func (dMC *directMappedCache) Update(address uint32, newData byte) bool{
+func (dMC *directMappedCache) Store(address uint32, newData byte) bool{
 	index, tag, line := dMC.extractIndexTagAndLine(address)
 
 	if line.tag == tag {

@@ -24,7 +24,7 @@ func (nWAC *NWayAssociativeCache)Init(mainMemory *mainMemory){
 	nWAC.mainMemory = mainMemory
 }
 
-func (nWAC *NWayAssociativeCache) GetData(address uint32) (byte, bool){
+func (nWAC *NWayAssociativeCache) Fetch(address uint32) (byte, bool){
 	wayIndex, tag := extractWayIndexAndTag(address)
 
 	line, exist := nWAC.getExistingLine(wayIndex,tag)
@@ -97,7 +97,7 @@ func (nWAC *NWayAssociativeCache) lRU(wayNum uint32) uint32 {
 	return uint32(indexOfLRU)
 }
 
-func (nWAC *NWayAssociativeCache) Update(address uint32, newData byte) bool{
+func (nWAC *NWayAssociativeCache) Store(address uint32, newData byte) bool{
 	wayIndex, tag := extractWayIndexAndTag(address)
 
 	line, exist := nWAC.getExistingLine(wayIndex, tag)

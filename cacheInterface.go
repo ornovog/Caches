@@ -7,7 +7,7 @@ const (
 
 type Cache interface {
 	//getting data and if was a hit, by passing address
-	GetData(address uint32) (byte, bool)
+	Fetch(address uint32) (byte, bool)
 	//updating data and if was a hit, by passing address
-	Update(address uint32, newData byte) bool
+	Store(address uint32, newData byte) bool
 }
