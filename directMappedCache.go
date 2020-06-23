@@ -1,10 +1,11 @@
-package Caches
+package caches
 
 const (
 	indexBits = cacheSize - 1
 	tagBits = addressMaxNumber - indexBits
 )
 
+//DMCacheLine - Direct Mapped Cache Line
 type DMCacheLine struct {
 	valid bool
 	tag uint32

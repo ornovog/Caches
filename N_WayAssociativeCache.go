@@ -1,17 +1,23 @@
-package Caches
+package caches
 
 const (
 	numOfWays = 2
+
+	//NWayIndexBits - the bits of the index in the address
 	NWayIndexBits = numOfWays-1
+
+	//NWayTagBits - the bits of the tag in the address
 	NWayTagBits = addressMaxNumber-NWayIndexBits
 )
 
+//NWACacheLine - N-Way Associative Cache Line
 type NWACacheLine struct {
 	useNumber uint64
 	tag uint32
 	data byte
 }
 
+//NWayAssociativeCache - N-Way Associative Cache
 type NWayAssociativeCache struct{
 	useNumberCounter uint64
 	storage *[numOfWays][cacheSize/numOfWays]NWACacheLine
@@ -19,11 +25,13 @@ type NWayAssociativeCache struct{
 	mainMemory *mainMemory
 }
 
+//Init - main memory and cache storage Initialization
 func (nWAC *NWayAssociativeCache)Init(mainMemory *mainMemory){
 	nWAC.storage = &[numOfWays][cacheSize/numOfWays]NWACacheLine{}
 	nWAC.mainMemory = mainMemory
 }
 
+//Fetch - getting data and if was a hit, by passing address
 func (nWAC *NWayAssociativeCache) Fetch(address uint32) (byte, bool){
 	wayIndex, tag := extractWayIndexAndTag(address)
 
@@ -49,6 +57,32 @@ func (nWAC *NWayAssociativeCache) Fetch(address uint32) (byte, bool){
 	nWAC.newAddressInLine(wayIndex, indexOfLRU, tag, data)
 
 	return data, false
+}
+
+//Store - updating data and if was a hit, by passing address
+func (nWAC *NWayAssociativeCache) Store(address uint32, newData byte) bool{
+	wayIndex, tag := extractWayIndexAndTag(address)
+
+	line, exist := nWAC.getExistingLine(wayIndex, tag)
+	if exist {
+		line.data = newData
+		return exist
+	}
+
+	if !nWAC.isStorageFull[wayIndex] {
+		for index, line := range nWAC.storage[wayIndex] {
+			if line.useNumber == 0 {
+				nWAC.newAddressInLine(wayIndex, uint32(index), tag, newData)
+				return false
+			}
+		}
+		nWAC.isStorageFull[wayIndex] = true
+	}
+
+	indexOfLRU := nWAC.lRU(wayIndex)
+	nWAC.newAddressInLine(wayIndex, indexOfLRU, tag, newData)
+
+	return false
 }
 
 func extractWayIndexAndTag(address uint32) (uint32, uint32) {
@@ -97,29 +131,4 @@ func (nWAC *NWayAssociativeCache) lRU(wayNum uint32) uint32 {
 		}
 	}
 	return uint32(indexOfLRU)
-}
-
-func (nWAC *NWayAssociativeCache) Store(address uint32, newData byte) bool{
-	wayIndex, tag := extractWayIndexAndTag(address)
-
-	line, exist := nWAC.getExistingLine(wayIndex, tag)
-	if exist {
-		line.data = newData
-		return exist
-	}
-
-	if !nWAC.isStorageFull[wayIndex] {
-		for index, line := range nWAC.storage[wayIndex] {
-			if line.useNumber == 0 {
-				nWAC.newAddressInLine(wayIndex, uint32(index), tag, newData)
-				return false
-			}
-		}
-		nWAC.isStorageFull[wayIndex] = true
-	}
-
-	indexOfLRU := nWAC.lRU(wayIndex)
-	nWAC.newAddressInLine(wayIndex, indexOfLRU, tag, newData)
-
-	return false
 }

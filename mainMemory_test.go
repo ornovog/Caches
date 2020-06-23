@@ -1,4 +1,4 @@
-package Caches
+package caches
 
 import (
 	"github.com/stretchr/testify/assert"

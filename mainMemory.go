@@ -1,4 +1,4 @@
-package Caches
+package caches
 
 const memorySize = 4294967296 //2^32
 
