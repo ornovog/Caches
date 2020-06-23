@@ -16,7 +16,7 @@ func TestFullyAssociativeCache_Fetch(t *testing.T) {
 	address := uint32(0)
 	collisionAddress := cacheSize + address
 
-	expectedVal := byte(rand.Intn(math.MaxInt8+1))
+	expectedVal := byte(rand.Intn(math.MaxInt8))
 	mM.Store(address,expectedVal)
 	val, hit := fAC.Fetch(address)
 	assert.EqualValues(t,expectedVal,val)
@@ -26,7 +26,7 @@ func TestFullyAssociativeCache_Fetch(t *testing.T) {
 	assert.EqualValues(t,expectedVal,val)
 	assert.True(t,hit)
 
-	secondExpectedVal := byte(rand.Intn(math.MaxInt8+1))
+	secondExpectedVal := byte(rand.Intn(math.MaxInt8))
 	mM.Store(collisionAddress,secondExpectedVal)
 	val, hit = fAC.Fetch(collisionAddress)
 	assert.EqualValues(t,secondExpectedVal,val)
@@ -49,7 +49,7 @@ func TestFullyAssociativeCache_Store(t *testing.T) {
 	fAC.Init(&mM)
 	address := uint32(0)
 
-	expectedVal := byte(rand.Intn(math.MaxInt8+1))
+	expectedVal := byte(rand.Intn(math.MaxInt8))
 	mM.Store(address,expectedVal)
 	hit := fAC.Store(address,expectedVal)
 	assert.False(t,hit)

@@ -13,12 +13,12 @@ type DMCacheLine struct {
 }
 
 type directMappedCache struct{
-	storage *[cacheSize]DMCacheLine
+	storage [cacheSize]DMCacheLine
 	mainMemory *mainMemory
 }
 
 func (dMC *directMappedCache)Init(mainMemory *mainMemory){
-	dMC.storage = &[cacheSize]DMCacheLine{}
+	dMC.storage = [cacheSize]DMCacheLine{}
 	dMC.mainMemory = mainMemory
 }
 
