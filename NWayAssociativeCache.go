@@ -41,10 +41,12 @@ func (nWAC *NWayAssociativeCache) Fetch(address uint32) (byte, bool){
 				return data, false
 			}
 		}
-	}else {
-		indexOfLRU := nWAC.lRU(wayIndex)
-		nWAC.newAddressInLine(wayIndex, indexOfLRU, tag, data)
+		nWAC.isStorageFull[wayIndex] = true
 	}
+
+
+	indexOfLRU := nWAC.lRU(wayIndex)
+	nWAC.newAddressInLine(wayIndex, indexOfLRU, tag, data)
 
 	return data, false
 }
@@ -56,9 +58,9 @@ func extractWayIndexAndTag(address uint32) (uint32, uint32) {
 }
 
 func (nWAC *NWayAssociativeCache) getExistingLine(wayNum, tag uint32) (*NWACacheLine, bool) {
-	for _, line := range nWAC.storage[wayNum] {
+	for i, line := range nWAC.storage[wayNum] {
 		if line.tag == tag && line.useNumber!=0{
-			line.useNumber = nWAC.newUseNumber()
+			nWAC.storage[wayNum][i].useNumber = nWAC.newUseNumber()
 			return &line, true
 		}
 	}
@@ -113,10 +115,11 @@ func (nWAC *NWayAssociativeCache) Store(address uint32, newData byte) bool{
 				return false
 			}
 		}
-	} else {
-		indexOfLRU := nWAC.lRU(wayIndex)
-		nWAC.newAddressInLine(wayIndex, indexOfLRU, tag, newData)
+		nWAC.isStorageFull[wayIndex] = true
 	}
+
+	indexOfLRU := nWAC.lRU(wayIndex)
+	nWAC.newAddressInLine(wayIndex, indexOfLRU, tag, newData)
 
 	return false
 }

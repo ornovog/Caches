@@ -22,42 +22,47 @@ func (dMC *directMappedCache)Init(mainMemory *mainMemory){
 }
 
 func (dMC *directMappedCache) Fetch(address uint32) (byte, bool){
-	index, tag, line := dMC.extractIndexTagAndLine(address)
+	index, tag:= dMC.extractIndexAndTag(address)
+	line :=dMC.storage[index]
 
-	if line.tag == tag && line.valid{
-		return line.data, true
-	}else {
-		if line.valid{
-			dMC.mainMemory.Store(line.tag+index,line.data)
+	if  line.valid{
+		if line.tag == tag {
+			return line.data, true
 		}
-
-		data := dMC.mainMemory.Fetch(address)
-		line.data = data
-		line.tag = tag
-		line.valid = true
-
-		return data, false
+		dMC.mainMemory.Store(line.tag+index,line.data)
 	}
+
+	data := dMC.mainMemory.Fetch(address)
+
+	dMC.storage[index].data = data
+	dMC.storage[index].tag = tag
+	dMC.storage[index].valid = true
+
+	return data, false
 }
 
 func (dMC *directMappedCache) Store(address uint32, newData byte) bool{
-	index, tag, line := dMC.extractIndexTagAndLine(address)
+	index, tag := dMC.extractIndexAndTag(address)
+	line := dMC.storage[index]
 
-	if line.tag == tag {
-		line.data = newData
-		return true
-	} else {
+	if line.valid {
+		if line.tag == tag {
+			dMC.storage[index].data = newData
+			return true
+		}
+
 		dMC.mainMemory.Store(line.tag+index, line.data)
-		line.data = newData
-		line.tag = tag
-
-		return false
 	}
+
+	dMC.storage[index].data = newData
+	dMC.storage[index].tag = tag
+	dMC.storage[index].valid = true
+
+	return false
 }
 
-func (dMC *directMappedCache) extractIndexTagAndLine(address uint32) (uint32, uint32, *DMCacheLine) {
+func (dMC *directMappedCache) extractIndexAndTag(address uint32) (uint32, uint32) {
 	index := address & indexBits
 	tag := address & tagBits
-	line := &dMC.storage[index]
-	return index, tag, line
+	return index, tag
 }
