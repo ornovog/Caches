@@ -10,7 +10,7 @@ func TestMainMemory(t *testing.T) {
 	mM.Init()
 
 	mM.Store(0,5)
-	x := mM.Fetch(0)
+	x := mM.Load(0)
 	assert.EqualValues(t,5, x)
 }
 

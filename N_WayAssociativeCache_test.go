@@ -2,7 +2,6 @@ package caches
 
 import (
 	"github.com/stretchr/testify/assert"
-	"math"
 	"math/rand"
 	"testing"
 )
@@ -16,7 +15,7 @@ func TestNWayAssociativeCache_Fetch(t *testing.T) {
 	address := uint32(0)
 	collisionAddress := cacheSize + address
 
-	expectedVal := byte(rand.Intn(math.MaxInt8+1))
+	expectedVal := int32(rand.Int())
 	mM.Store(address,expectedVal)
 	val, hit := nWAC.Fetch(address)
 	assert.EqualValues(t,expectedVal,val)
@@ -26,7 +25,7 @@ func TestNWayAssociativeCache_Fetch(t *testing.T) {
 	assert.EqualValues(t,expectedVal,val)
 	assert.EqualValues(t,true,hit)
 
-	secondExpectedVal := byte(rand.Intn(math.MaxInt8+1))
+	secondExpectedVal := int32(rand.Int())
 	mM.Store(collisionAddress,secondExpectedVal)
 	val, hit = nWAC.Fetch(collisionAddress)
 	assert.EqualValues(t,secondExpectedVal,val)
@@ -49,7 +48,7 @@ func TestNWayAssociativeCache_Store(t *testing.T) {
 	nWAC.Init(&mM)
 	address := uint32(0)
 
-	expectedVal := byte(rand.Intn(math.MaxInt8+1))
+	expectedVal := int32(rand.Int())
 	mM.Store(address,expectedVal)
 	hit := nWAC.Store(address,expectedVal)
 	assert.EqualValues(t,false,hit)
@@ -67,7 +66,7 @@ func TestNWayAssociativeCache_Fetch_LRU(t *testing.T) {
 	nWAC.Init(&mM)
 
 	for line := 0; line < cacheSize ; line+=numOfWays {
-		nWAC.Store(uint32(line),byte(line))
+		nWAC.Store(uint32(line),int32(line))
 	}
 
 	_, hit := nWAC.Fetch(0)

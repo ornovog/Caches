@@ -1,19 +1,21 @@
 package caches
 
-const memorySize = 4294967296 //2^32
+import "sync/atomic"
+
+const memorySize = 1073741824 //2^32
 
 type mainMemory struct {
-	storage [memorySize]byte
+	storage [memorySize]int32
 }
 
 func (mM *mainMemory) Init()  {
-	mM.storage = [memorySize]byte{}
+	mM.storage = [memorySize]int32{}
 }
 
-func (mM *mainMemory) Store(address uint32, data byte){
-	mM.storage[address] = data
+func (mM *mainMemory) Store(address uint32, data int32){
+	atomic.StoreInt32(&mM.storage[address], data)
 }
 
-func (mM *mainMemory) Fetch(address uint32) byte{
-	return mM.storage[address]
+func (mM *mainMemory) Load(address uint32) int32{
+	return atomic.LoadInt32(&mM.storage[address])
 }

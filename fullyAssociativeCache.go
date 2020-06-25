@@ -1,10 +1,13 @@
 package caches
 
+import "sync"
+
 //FACacheLine - Fully Associative Cache Line
 type FACacheLine struct {
 	valid bool
 	address uint32
-	data byte
+	data int32
+	rWM sync.RWMutex
 }
 
 type fullyAssociativeCache struct{
@@ -20,20 +23,26 @@ func (fAC *fullyAssociativeCache) Init(mainMemory *mainMemory){
 	fAC.lruQueue.Init(cacheSize)
 }
 
-func (fAC *fullyAssociativeCache) Fetch(address uint32) (byte, bool){
+func (fAC *fullyAssociativeCache) Load(address uint32) (int32, bool){
 	line, exist := fAC.getExistingLine(address)
 	if exist {
+		line.rWM.RUnlock()
 		return line.data, exist
 	}
 
-	data := fAC.mainMemory.Fetch(address)
+	data := fAC.mainMemory.Load(address)
 
 	if !fAC.isStorageFull{
-		for i, line := range fAC.storage {
+		for index := range fAC.storage {
+			line := &fAC.storage[index]
+
+			line.rWM.RLock()
 			if !line.valid {
-				fAC.newAddressInLine(uint32(i), address, data)
+				line.rWM.RUnlock()
+				fAC.newAddressInLine(uint32(index), address, data)
 				return data, false
 			}
+			line.rWM.RUnlock()
 		}
 
 		fAC.isStorageFull = true
@@ -45,19 +54,27 @@ func (fAC *fullyAssociativeCache) Fetch(address uint32) (byte, bool){
 	return data, false
 }
 
-func (fAC *fullyAssociativeCache) Store(address uint32, newData byte) bool{
+func (fAC *fullyAssociativeCache) Store(address uint32, newData int32) bool{
 	line, exist := fAC.getExistingLine(address)
 	if exist {
+		line.rWM.RUnlock()
+		line.rWM.Lock()
 		line.data = newData
+		line.rWM.Unlock()
 		return exist
 	}
 
 	if !fAC.isStorageFull{
-		for i, line := range fAC.storage {
+		for index := range fAC.storage {
+			line := &fAC.storage[index]
+
+			line.rWM.RLock()
 			if !line.valid{
-				fAC.newAddressInLine(uint32(i), address, newData)
+				line.rWM.RUnlock()
+				fAC.newAddressInLine(uint32(index), address, newData)
 				return false
 			}
+			line.rWM.RUnlock()
 		}
 		fAC.isStorageFull = true
 	}
@@ -69,18 +86,23 @@ func (fAC *fullyAssociativeCache) Store(address uint32, newData byte) bool{
 }
 
 func (fAC *fullyAssociativeCache) getExistingLine(address uint32) (*FACacheLine, bool) {
-	for i, line := range fAC.storage {
+	for index := range fAC.storage {
+		line := &fAC.storage[index]
+
+		line.rWM.RLock()
 		if line.address == address && line.valid{
-			fAC.lruQueue.Update(uint32(i))
-			return &fAC.storage[i], true
+			fAC.lruQueue.Update(uint32(index))
+			return line, true
 		}
+		line.rWM.RUnlock()
 	}
 
 	return nil, false
 }
 
-func (fAC *fullyAssociativeCache) newAddressInLine(index uint32, address uint32, data byte){
+func (fAC *fullyAssociativeCache) newAddressInLine(index uint32, address uint32, data int32){
 	line := &fAC.storage[index]
+	line.rWM.Lock()
 	if line.valid{
 		oldAddress := line.address
 		oldData := line.data
@@ -91,6 +113,7 @@ func (fAC *fullyAssociativeCache) newAddressInLine(index uint32, address uint32,
 	line.valid = true
 	line.address = address
 	line.data = data
+	line.rWM.Unlock()
 }
 
 
