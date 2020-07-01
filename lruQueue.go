@@ -5,17 +5,17 @@ import (
 	"sync"
 )
 
-type queue struct {
+type lruQueue struct {
 	lRUList list.List
 	pointersArray[] *list.Element
 	rWM sync.RWMutex
 }
 
-func (q *queue) Init(length uint32){
+func (q *lruQueue) Init(length uint32){
 	q.pointersArray = make([]*list.Element,length)
 }
 
-func (q *queue) Update(index uint32){
+func (q *lruQueue) Update(index uint32){
 	q.rWM.Lock()
 	if  q.pointersArray[index] == nil{
 		element := q.lRUList.PushFront(index)
@@ -27,7 +27,7 @@ func (q *queue) Update(index uint32){
 	q.rWM.Unlock()
 }
 
-func (q *queue) Back() uint32{
+func (q *lruQueue) Back() uint32{
 	q.rWM.RLock()
 	val := q.lRUList.Back().Value.(uint32)
 	q.rWM.RUnlock()

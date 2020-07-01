@@ -1,6 +1,8 @@
 package caches
 
-import "sync"
+import (
+	"sync"
+)
 
 const (
 	indexBits = cacheSize - 1

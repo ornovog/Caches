@@ -14,7 +14,7 @@ type fullyAssociativeCache struct{
 	mainMemory *mainMemory
 	storage [cacheSize]FACacheLine
 	isStorageFull bool
-	lruQueue queue
+	lruQueue lruQueue
 }
 
 func (fAC *fullyAssociativeCache) Init(mainMemory *mainMemory){
