@@ -14,7 +14,7 @@ func TestDirectMappedCache_Load(t *testing.T) {
 	dMC.Init(&mM)
 
 	address := uint32(0)
-	collisionAddress := cacheSize + address
+	collisionAddress := CacheSize + address
 
 	expectedVal := int32(rand.Int())
 	mM.Store(address,expectedVal)
@@ -50,7 +50,7 @@ func TestDirectMappedCache_Store(t *testing.T) {
 	var dMC directMappedCache
 	dMC.Init(&mM)
 	address := uint32(0)
-	collisionAddress := cacheSize + address
+	collisionAddress := CacheSize + address
 
 	expectedVal := int32(rand.Int())
 	hit := dMC.Store(address,expectedVal)

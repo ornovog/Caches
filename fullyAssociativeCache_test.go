@@ -12,8 +12,8 @@ func TestFullyAssociativeCache_Load(t *testing.T) {
 
 	var fAC fullyAssociativeCache
 	fAC.Init(&mM)
-	address := uint32(0)
-	collisionAddress := cacheSize + address
+	address := Address(0)
+	collisionAddress := CacheSize + address
 
 	expectedVal := int32(rand.Int())
 	mM.Store(address,expectedVal)
@@ -65,14 +65,14 @@ func TestFullyAssociativeCache_Load_LRU(t *testing.T) {
 	var fAC fullyAssociativeCache
 	fAC.Init(&mM)
 
-	for line := 0; line < cacheSize ; line++ {
+	for line := 0; line < CacheSize; line++ {
 		fAC.Store(uint32(line),int32(line))
 	}
 
 	_, hit := fAC.Load(0)
 	assert.True(t,hit)
 
-	hit = fAC.Store(cacheSize,cacheSize)
+	hit = fAC.Store(CacheSize, CacheSize)
 	assert.False(t,hit)
 
 	_, hit = fAC.Load(0)

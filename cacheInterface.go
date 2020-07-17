@@ -1,8 +1,8 @@
 package caches
 
 const (
-	cacheSize = 64
-	addressMaxNumber = 4294967295 //2^32-1
+	CacheSize        = 64 //lines
+	AddressMaxNumber = 4294967295 //2^32-1
 )
 
 //Cache - an interface for cache

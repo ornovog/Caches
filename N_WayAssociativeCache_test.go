@@ -13,7 +13,7 @@ func TestNWayAssociativeCache_Fetch(t *testing.T) {
 	var nWAC NWayAssociativeCache
 	nWAC.Init(&mM)
 	address := uint32(0)
-	collisionAddress := cacheSize + address
+	collisionAddress := CacheSize + address
 
 	expectedVal := int32(rand.Int())
 	mM.Store(address,expectedVal)
@@ -65,19 +65,19 @@ func TestNWayAssociativeCache_Fetch_LRU(t *testing.T) {
 	var nWAC NWayAssociativeCache
 	nWAC.Init(&mM)
 
-	for line := 0; line < cacheSize ; line+=numOfWays {
+	for line := 0; line < CacheSize; line+= NumOfWays {
 		nWAC.Store(uint32(line),int32(line))
 	}
 
 	_, hit := nWAC.Fetch(0)
 	assert.True(t,hit)
 
-	hit = nWAC.Store(cacheSize,cacheSize)
+	hit = nWAC.Store(CacheSize, CacheSize)
 	assert.False(t,hit)
 
 	_, hit = nWAC.Fetch(0)
 	assert.True(t,hit)
 
-	_, hit = nWAC.Fetch(numOfWays)
+	_, hit = nWAC.Fetch(NumOfWays)
 	assert.False(t,hit)
 }
