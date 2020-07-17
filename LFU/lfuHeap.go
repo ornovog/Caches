@@ -1,11 +1,11 @@
-package caches
+package LFU
 
 import (
 	"container/heap"
 )
 
 type lfuHeap struct {
-	heap LeastFrequentUsesHeap
+	heap             LeastFrequentUsesHeap
 	cacheIndexToItem map[uint32] *Item
 }
 

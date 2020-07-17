@@ -1,4 +1,4 @@
-package caches
+package mainMemory
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestMainMemory(t *testing.T) {
-	var mM mainMemory
+	var mM MainMemory
 	mM.Init()
 
 	mM.Store(0,5)

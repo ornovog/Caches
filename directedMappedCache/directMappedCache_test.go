@@ -1,20 +1,21 @@
-package caches
+package directedMappedCache
 
 import (
+	"Caches"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
 )
 
 func TestDirectMappedCache_Load(t *testing.T) {
-	var mM mainMemory
+	var mM caches.mainMemory
 	mM.Init()
 
-	var dMC directMappedCache
+	var dMC DirectMappedCache
 	dMC.Init(&mM)
 
 	address := uint32(0)
-	collisionAddress := CacheSize + address
+	collisionAddress := caches.CacheSize + address
 
 	expectedVal := int32(rand.Int())
 	mM.Store(address,expectedVal)
@@ -44,13 +45,13 @@ func TestDirectMappedCache_Load(t *testing.T) {
 }
 
 func TestDirectMappedCache_Store(t *testing.T) {
-	var mM mainMemory
+	var mM caches.mainMemory
 	mM.Init()
 
-	var dMC directMappedCache
+	var dMC DirectMappedCache
 	dMC.Init(&mM)
 	address := uint32(0)
-	collisionAddress := CacheSize + address
+	collisionAddress := caches.CacheSize + address
 
 	expectedVal := int32(rand.Int())
 	hit := dMC.Store(address,expectedVal)

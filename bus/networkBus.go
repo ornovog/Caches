@@ -1,6 +1,9 @@
-package caches
+package bus
 
-import "sync"
+import (
+	"Caches/mainMemory"
+	"sync"
+)
 
 type LineState string
 
@@ -12,36 +15,36 @@ const(
 	Invalid = "Invalid"
 )
 
-type busMessage struct{
-	Address   Address
+type BusMessage struct{
+	Address   mainMemory.Address
 	LineState LineState
 }
 
-type networkBus struct {
+type NetworkBus struct {
 	numOfListener int
-	busListeners [] chan busMessage
+	busListeners [] chan BusMessage
 	busWriters [] chan bool
 	currentCacheNum int
 	busLocker sync.Mutex
 }
 
-func (nB *networkBus) Init(numOfCaches int) {
-	nB.busListeners = make([] chan busMessage, numOfCaches)
+func (nB *NetworkBus) Init(numOfCaches int) {
+	nB.busListeners = make([] chan BusMessage, numOfCaches)
 	nB.busWriters = make([] chan bool, numOfCaches)
 }
 
-func (nB *networkBus) GetBusListenerAndWriter() (chan busMessage, chan bool) {
+func (nB *NetworkBus) GetBusListenerAndWriter() (chan BusMessage, chan bool) {
 	nB.currentCacheNum++
 	return nB.busListeners[nB.currentCacheNum], nB.busWriters[nB.currentCacheNum]
 }
 
-func (nB *networkBus) AskModify(cacheNumber int, address Address) {
-	bM :=busMessage{Address: address, LineState: Modify}
+func (nB *NetworkBus) AskModify(cacheNumber int, address mainMemory.Address) {
+	bM := BusMessage{Address: address, LineState: Modify}
 	nB.writeAndWaitOnBus(cacheNumber, bM)
 }
 
-func (nB *networkBus) AskExclusive(cacheNumber int, address Address) bool{
-	bM :=busMessage{Address: address, LineState: Exclusive}
+func (nB *NetworkBus) AskExclusive(cacheNumber int, address mainMemory.Address) bool{
+	bM := BusMessage{Address: address, LineState: Exclusive}
 
 	nB.busLocker.Lock()
 	for i:=0;i<nB.numOfListener;i++{
@@ -68,12 +71,12 @@ func (nB *networkBus) AskExclusive(cacheNumber int, address Address) bool{
 	return true
 }
 
-func (nB *networkBus) AskShared(cacheNumber int, address Address){
-	bM :=busMessage{Address: address, LineState: Shared}
+func (nB *NetworkBus) AskShared(cacheNumber int, address mainMemory.Address){
+	bM := BusMessage{Address: address, LineState: Shared}
 	nB.writeAndWaitOnBus(cacheNumber, bM)
 }
 
-func (nB *networkBus) writeAndWaitOnBus(cacheNumber int, bM busMessage) {
+func (nB *NetworkBus) writeAndWaitOnBus(cacheNumber int, bM BusMessage) {
 	nB.busLocker.Lock()
 	for i := 0; i < nB.numOfListener; i++ {
 		if i != cacheNumber {

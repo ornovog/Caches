@@ -1,19 +1,20 @@
-package caches
+package LRU
 
 import (
+	"Caches/mainMemory"
 	"container/list"
 )
 
-type lruQueue struct {
+type LruQueue struct {
 	lRUList list.List
 	pointersArray[] *list.Element
 }
 
-func (q *lruQueue) Init(length uint32){
+func (q *LruQueue) Init(length uint32){
 	q.pointersArray = make([]*list.Element,length)
 }
 
-func (q *lruQueue) Update(index Address){
+func (q *LruQueue) Update(index mainMemory.Address){
 	if  q.pointersArray[index] == nil{
 		element := q.lRUList.PushFront(index)
 		q.pointersArray[index] = element
@@ -23,7 +24,7 @@ func (q *lruQueue) Update(index Address){
 	}
 }
 
-func (q *lruQueue) Back() uint32{
+func (q *LruQueue) Back() uint32{
 	val := q.lRUList.Back().Value.(uint32)
 	return val
 }

@@ -1,4 +1,4 @@
-package caches
+package LFU
 
 import "container/heap"
 

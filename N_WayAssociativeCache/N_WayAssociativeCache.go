@@ -1,4 +1,10 @@
-package caches
+package N_WayAssociativeCache
+
+import (
+	"Caches"
+	"Caches/LRU"
+	"Caches/mainMemory"
+)
 
 const (
 	NumOfWays = 2
@@ -7,37 +13,37 @@ const (
 	NWayNumBits = NumOfWays -1
 
 	//NWayTagBits - the bits of the tag in the address
-	NWayTagBits = AddressMaxNumber -NWayNumBits
+	NWayTagBits = caches.AddressMaxNumber - NWayNumBits
 )
 
 //NWACacheLine - N-Way Associative Cache Line
 type NWACacheLine struct {
 	valid bool
-	tag Address
-	data Data
+	tag   mainMemory.Address
+	data  mainMemory.Data
 
 }
 
 //NWayAssociativeCache - N-Way Associative Cache
 type NWayAssociativeCache struct{
-	mainMemory *mainMemory
-	storage [NumOfWays][CacheSize/NumOfWays]NWACacheLine
+	mainMemory *mainMemory.MainMemory
+	storage [NumOfWays][caches.CacheSize / NumOfWays]NWACacheLine
 	isStorageFull [NumOfWays]bool
-	lruQueues [NumOfWays]lruQueue
+	lruQueues [NumOfWays]LRU.LruQueue
 }
 
 //Init - main memory and cache storage Initialization
-func (nWAC *NWayAssociativeCache)Init(mainMemory *mainMemory){
-	nWAC.storage = [NumOfWays][CacheSize / NumOfWays]NWACacheLine{}
+func (nWAC *NWayAssociativeCache)Init(mainMemory *mainMemory.MainMemory){
+	nWAC.storage = [NumOfWays][caches.CacheSize / NumOfWays]NWACacheLine{}
 	nWAC.mainMemory = mainMemory
 
 	for i :=0; i< NumOfWays; i++ {
-		nWAC.lruQueues[i].Init(CacheSize / NumOfWays)
+		nWAC.lruQueues[i].Init(caches.CacheSize / NumOfWays)
 	}
 }
 
 //Fetch - getting data and if was a hit, by passing address
-func (nWAC *NWayAssociativeCache) Fetch(address Address) (Data, bool){
+func (nWAC *NWayAssociativeCache) Fetch(address mainMemory.Address) (mainMemory.Data, bool){
 	wayNum, tag := extractWayNumAndTag(address)
 
 	line, exist := nWAC.getExistingLine(wayNum,tag)
@@ -51,7 +57,7 @@ func (nWAC *NWayAssociativeCache) Fetch(address Address) (Data, bool){
 		for index := range nWAC.storage[wayNum] {
 			line = &nWAC.storage[wayNum][index]
 			if !line.valid {
-				nWAC.newAddressInLine(wayNum, Address(index), tag, data)
+				nWAC.newAddressInLine(wayNum, mainMemory.Address(index), tag, data)
 				return data, false
 			}
 		}
@@ -60,13 +66,13 @@ func (nWAC *NWayAssociativeCache) Fetch(address Address) (Data, bool){
 
 
 	indexOfLRU := nWAC.lruQueues[wayNum].Back()
-	nWAC.newAddressInLine(wayNum, Address(indexOfLRU), tag, data)
+	nWAC.newAddressInLine(wayNum, mainMemory.Address(indexOfLRU), tag, data)
 
 	return data, false
 }
 
 //Store - updating data and if was a hit, by passing address
-func (nWAC *NWayAssociativeCache) Store(address Address, newData Data) bool{
+func (nWAC *NWayAssociativeCache) Store(address mainMemory.Address, newData mainMemory.Data) bool{
 	wayNum, tag := extractWayNumAndTag(address)
 
 	line, exist := nWAC.getExistingLine(wayNum, tag)
@@ -80,7 +86,7 @@ func (nWAC *NWayAssociativeCache) Store(address Address, newData Data) bool{
 			line := &nWAC.storage[wayNum][index]
 
 			if !line.valid {
-				nWAC.newAddressInLine(wayNum, Address(index), tag, newData)
+				nWAC.newAddressInLine(wayNum, mainMemory.Address(index), tag, newData)
 				return false
 			}
 		}
@@ -88,23 +94,23 @@ func (nWAC *NWayAssociativeCache) Store(address Address, newData Data) bool{
 	}
 
 	indexOfLRU := nWAC.lruQueues[wayNum].Back()
-	nWAC.newAddressInLine(wayNum, Address(indexOfLRU), tag, newData)
+	nWAC.newAddressInLine(wayNum, mainMemory.Address(indexOfLRU), tag, newData)
 
 	return false
 }
 
-func extractWayNumAndTag(address Address) (Address, Address) {
+func extractWayNumAndTag(address mainMemory.Address) (mainMemory.Address, mainMemory.Address) {
 	wayNum := address & NWayNumBits
 	tag := address & NWayTagBits
 	return wayNum, tag
 }
 
-func (nWAC *NWayAssociativeCache) getExistingLine(wayNum, tag Address) (*NWACacheLine, bool) {
+func (nWAC *NWayAssociativeCache) getExistingLine(wayNum, tag mainMemory.Address) (*NWACacheLine, bool) {
 	for index := range nWAC.storage[wayNum] {
 		line := &nWAC.storage[wayNum][index]
 
 		if line.tag == tag && line.valid{
-			nWAC.lruQueues[wayNum].Update(Address(index))
+			nWAC.lruQueues[wayNum].Update(mainMemory.Address(index))
 			return line, true
 		}
 	}
@@ -112,7 +118,7 @@ func (nWAC *NWayAssociativeCache) getExistingLine(wayNum, tag Address) (*NWACach
 	return nil, false
 }
 
-func (nWAC *NWayAssociativeCache) newAddressInLine(wayNum, index, tag Address, data Data){
+func (nWAC *NWayAssociativeCache) newAddressInLine(wayNum, index, tag mainMemory.Address, data mainMemory.Data){
 	line := &nWAC.storage[wayNum][index]
 
 	if line.valid {
