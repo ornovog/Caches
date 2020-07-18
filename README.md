@@ -1,4 +1,4 @@
 # Caches
-three implementions for cache handeling - direcet mapped, fully associative and N-way associative,
-with LRU (Least Recently Used) and LFU (Least Frequently Used) replacement policy.
-caches communicate with MESI protocol.
+Three implementions for cache handeling - direcet mapped, fully associative and N-way associative.
+Also two implementions for replacement policy - LRU (Least Recently Used) and LFU (Least Frequently Used).
+The caches communicate with MESI protocol.
