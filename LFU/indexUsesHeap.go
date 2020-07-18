@@ -3,9 +3,9 @@ package LFU
 import "container/heap"
 
 type Item struct {
-	indexInCache	uint32
-	numOfUses 		int
-	indexInHeap 	int
+	indexInCache uint32
+	numOfUses    int
+	indexInHeap  int
 }
 
 type LeastFrequentUsesHeap []*Item
@@ -33,7 +33,7 @@ func (lfuHeap *LeastFrequentUsesHeap) Pop() interface{} {
 	old := *lfuHeap
 	n := len(old)
 	item := old[n-1]
-	old[n-1] = nil  // avoid memory leak
+	old[n-1] = nil        // avoid memory leak
 	item.indexInHeap = -1 // for safety
 	*lfuHeap = old[0 : n-1]
 	return item

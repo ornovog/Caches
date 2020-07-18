@@ -9,11 +9,11 @@ type MainMemory struct {
 	storage [memorySize]Data
 }
 
-func (mM *MainMemory) Init()  {
+func (mM *MainMemory) Init() {
 	mM.storage = [memorySize]Data{}
 }
 
-func (mM *MainMemory) Store(address Address, data Data){
+func (mM *MainMemory) Store(address Address, data Data) {
 	mM.storage[address] = data
 }
 

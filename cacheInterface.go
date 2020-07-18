@@ -1,7 +1,7 @@
 package caches
 
 const (
-	CacheSize        = 64 //lines
+	CacheSize        = 64         //lines
 	AddressMaxNumber = 4294967295 //2^32-1
 )
 

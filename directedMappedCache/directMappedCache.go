@@ -7,7 +7,7 @@ import (
 
 const (
 	indexBits = caches.CacheSize - 1
-	tagBits = caches.AddressMaxNumber - indexBits
+	tagBits   = caches.AddressMaxNumber - indexBits
 )
 
 //DMCacheLine - Direct Mapped Cache Line
@@ -17,25 +17,25 @@ type DMCacheLine struct {
 	data  mainMemory.Data
 }
 
-type DirectMappedCache struct{
-	storage [caches.CacheSize]DMCacheLine
+type DirectMappedCache struct {
+	storage    [caches.CacheSize]DMCacheLine
 	mainMemory *mainMemory.MainMemory
 }
 
-func (dMC *DirectMappedCache)Init(mainMemory *mainMemory.MainMemory){
+func (dMC *DirectMappedCache) Init(mainMemory *mainMemory.MainMemory) {
 	dMC.storage = [caches.CacheSize]DMCacheLine{}
 	dMC.mainMemory = mainMemory
 }
 
-func (dMC *DirectMappedCache) Load(address mainMemory.Address) (mainMemory.Data, bool){
-	index, tag:= dMC.extractIndexAndTag(address)
-	line :=dMC.storage[index]
+func (dMC *DirectMappedCache) Load(address mainMemory.Address) (mainMemory.Data, bool) {
+	index, tag := dMC.extractIndexAndTag(address)
+	line := dMC.storage[index]
 
-	if  line.valid{
+	if line.valid {
 		if line.tag == tag {
 			return line.data, true
 		}
-		dMC.mainMemory.Store(line.tag+index,line.data)
+		dMC.mainMemory.Store(line.tag+index, line.data)
 	}
 
 	data := dMC.mainMemory.Load(address)
@@ -47,7 +47,7 @@ func (dMC *DirectMappedCache) Load(address mainMemory.Address) (mainMemory.Data,
 	return data, false
 }
 
-func (dMC *DirectMappedCache) Store(address mainMemory.Address, newData mainMemory.Data) bool{
+func (dMC *DirectMappedCache) Store(address mainMemory.Address, newData mainMemory.Data) bool {
 	index, tag := dMC.extractIndexAndTag(address)
 	line := dMC.storage[index]
 

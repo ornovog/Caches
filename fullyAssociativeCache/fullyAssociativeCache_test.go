@@ -1,7 +1,8 @@
 package fullyAssociativeCache
 
 import (
-	"Caches"
+	caches "Caches"
+	"Caches/bus"
 	"Caches/mainMemory"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
@@ -12,74 +13,83 @@ func TestFullyAssociativeCache_Load(t *testing.T) {
 	var mM mainMemory.MainMemory
 	mM.Init()
 
-	var fAC fullyAssociativeCache.fullyAssociativeCache
-	fAC.Init(&mM)
+	var nB bus.NetworkBus
+	nB.Init(1)
+
+	var fAC fullyAssociativeCache
+	fAC.Init(&mM, &nB)
 	address := mainMemory.Address(0)
 	collisionAddress := caches.CacheSize + address
 
-	expectedVal := int32(rand.Int())
-	mM.Store(address,expectedVal)
+	expectedVal := mainMemory.Data(rand.Int())
+	mM.Store(address, expectedVal)
 	val, hit := fAC.Load(address)
-	assert.EqualValues(t,expectedVal,val)
-	assert.False(t,hit)
+	assert.EqualValues(t, expectedVal, val)
+	assert.False(t, hit)
 
 	val, hit = fAC.Load(address)
-	assert.EqualValues(t,expectedVal,val)
-	assert.True(t,hit)
+	assert.EqualValues(t, expectedVal, val)
+	assert.True(t, hit)
 
-	secondExpectedVal := int32(rand.Int())
-	mM.Store(collisionAddress,secondExpectedVal)
+	secondExpectedVal := mainMemory.Data(rand.Int())
+	mM.Store(collisionAddress, secondExpectedVal)
 	val, hit = fAC.Load(collisionAddress)
-	assert.EqualValues(t,secondExpectedVal,val)
-	assert.False(t,hit)
+	assert.EqualValues(t, secondExpectedVal, val)
+	assert.False(t, hit)
 
 	val, hit = fAC.Load(collisionAddress)
-	assert.EqualValues(t,val,secondExpectedVal)
-	assert.True(t,hit)
+	assert.EqualValues(t, val, secondExpectedVal)
+	assert.True(t, hit)
 
 	val, hit = fAC.Load(address)
-	assert.EqualValues(t,val,expectedVal)
-	assert.True(t,hit)
+	assert.EqualValues(t, val, expectedVal)
+	assert.True(t, hit)
 }
 
 func TestFullyAssociativeCache_Store(t *testing.T) {
 	var mM mainMemory.MainMemory
 	mM.Init()
 
-	var fAC fullyAssociativeCache.fullyAssociativeCache
-	fAC.Init(&mM)
-	address := uint32(0)
+	var nB bus.NetworkBus
+	nB.Init(1)
 
-	expectedVal := int32(rand.Int())
-	mM.Store(address,expectedVal)
-	hit := fAC.Store(address,expectedVal)
-	assert.False(t,hit)
+	var fAC fullyAssociativeCache
+	fAC.Init(&mM, &nB)
+	address := mainMemory.Address(0)
+
+	expectedVal := mainMemory.Data(rand.Int())
+	mM.Store(address, expectedVal)
+	hit := fAC.Store(address, expectedVal)
+	assert.False(t, hit)
 
 	val, hit := fAC.Load(address)
-	assert.EqualValues(t,expectedVal,val)
-	assert.True(t,hit)
+	assert.EqualValues(t, expectedVal, val)
+	assert.True(t, hit)
 }
 
 func TestFullyAssociativeCache_Load_LRU(t *testing.T) {
 	var mM mainMemory.MainMemory
 	mM.Init()
 
-	var fAC fullyAssociativeCache.fullyAssociativeCache
-	fAC.Init(&mM)
+	var nB bus.NetworkBus
+	nB.Init(1)
+
+	var fAC fullyAssociativeCache
+	fAC.Init(&mM, &nB)
 
 	for line := 0; line < caches.CacheSize; line++ {
-		fAC.Store(uint32(line),int32(line))
+		fAC.Store(mainMemory.Address(line), mainMemory.Data(line))
 	}
 
 	_, hit := fAC.Load(0)
-	assert.True(t,hit)
+	assert.True(t, hit)
 
 	hit = fAC.Store(caches.CacheSize, caches.CacheSize)
-	assert.False(t,hit)
+	assert.False(t, hit)
 
 	_, hit = fAC.Load(0)
-	assert.True(t,hit)
+	assert.True(t, hit)
 
 	_, hit = fAC.Load(1)
-	assert.False(t,hit)
+	assert.False(t, hit)
 }

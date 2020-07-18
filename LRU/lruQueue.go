@@ -6,16 +6,16 @@ import (
 )
 
 type LruQueue struct {
-	lRUList list.List
-	pointersArray[] *list.Element
+	lRUList       list.List
+	pointersArray []*list.Element
 }
 
-func (q *LruQueue) Init(length uint32){
-	q.pointersArray = make([]*list.Element,length)
+func (q *LruQueue) Init(length uint32) {
+	q.pointersArray = make([]*list.Element, length)
 }
 
-func (q *LruQueue) Update(index mainMemory.Address){
-	if  q.pointersArray[index] == nil{
+func (q *LruQueue) Update(index mainMemory.Address) {
+	if q.pointersArray[index] == nil {
 		element := q.lRUList.PushFront(index)
 		q.pointersArray[index] = element
 	} else {
@@ -24,7 +24,7 @@ func (q *LruQueue) Update(index mainMemory.Address){
 	}
 }
 
-func (q *LruQueue) Back() uint32{
-	val := q.lRUList.Back().Value.(uint32)
+func (q *LruQueue) Back() mainMemory.Address {
+	val := q.lRUList.Back().Value.(mainMemory.Address)
 	return val
 }
