@@ -2,6 +2,7 @@ package directedMappedCache
 
 import (
 	"Caches"
+	"Caches/bus"
 	"Caches/mainMemory"
 )
 
@@ -12,7 +13,7 @@ const (
 
 //DMCacheLine - Direct Mapped Cache Line
 type DMCacheLine struct {
-	valid bool
+	state   bus.LineState
 	tag   mainMemory.Address
 	data  mainMemory.Data
 }
@@ -20,18 +21,41 @@ type DMCacheLine struct {
 type DirectMappedCache struct {
 	storage    [caches.CacheSize]DMCacheLine
 	mainMemory *mainMemory.MainMemory
+	busStuff   caches.BusStuff
 }
 
-func (dMC *DirectMappedCache) Init(mainMemory *mainMemory.MainMemory) {
+func (dMC *DirectMappedCache) Init(mainMemory *mainMemory.MainMemory, networkBus *bus.NetworkBus) {
 	dMC.storage = [caches.CacheSize]DMCacheLine{}
 	dMC.mainMemory = mainMemory
+	dMC.networkBus = networkBus
+	dMC.busListener, dMC.busWriter, dMC.cacheNumber = networkBus.GetBusListenerAndWriter()
+	go dMC.listenOnBus()
+}
+
+func (dMC *DirectMappedCache) listenOnBus() {
+	for busMessage := range dMC.busListener {
+		index, tag := dMC.extractIndexAndTag(address)
+		line := dMC.storage[index]
+		if line.state != "" && line.tag == tag {
+			switch busMessage.LineState {
+			case bus.Modify:
+				dMC.modifyCase(index, busMessage)
+			case bus.Exclusive:
+				dMC.exclusiveCase(index)
+			case bus.Shared:
+				dMC.sharedCase(index, busMessage)
+			}
+		} else {
+			dMC.busWriter <- true
+		}
+	}
 }
 
 func (dMC *DirectMappedCache) Load(address mainMemory.Address) (mainMemory.Data, bool) {
 	index, tag := dMC.extractIndexAndTag(address)
 	line := dMC.storage[index]
 
-	if line.valid {
+	if line.state == bus.Exclusive {
 		if line.tag == tag {
 			return line.data, true
 		}

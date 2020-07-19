@@ -5,21 +5,21 @@ import (
 	"Caches/LRU"
 	"Caches/bus"
 	"Caches/mainMemory"
+	"sync"
 )
 
 //FACacheLine - Fully Associative Cache Line
 type FACacheLine struct {
-	state   bus.LineState
-	address mainMemory.Address
-	data    mainMemory.Data
+	state   	bus.LineState
+	address 	mainMemory.Address
+	data    	mainMemory.Data
+	stateLocker sync.Mutex
 }
 
 type fullyAssociativeCache struct {
 	mainMemory     *mainMemory.MainMemory
-	networkBus     *bus.NetworkBus
-	cacheNumber    int
-	busListener    chan bus.Message
-	busWriter      chan bool
+	NetworkBus     *bus.NetworkBus
+	busStuff       bus.BusStuff
 	storage        [caches.CacheSize]FACacheLine
 	nextEmpty      int
 	lruQueue       LRU.LruQueue
@@ -31,13 +31,13 @@ func (fAC *fullyAssociativeCache) Init(mainMemory *mainMemory.MainMemory, networ
 	fAC.mainMemory = mainMemory
 	fAC.storage = [caches.CacheSize]FACacheLine{}
 	fAC.lruQueue.Init(caches.CacheSize)
-	fAC.networkBus = networkBus
-	fAC.busListener, fAC.busWriter, fAC.cacheNumber = networkBus.GetBusListenerAndWriter()
+	fAC.busStuff.NetworkBus = networkBus
+	fAC.busStuff = networkBus.GetBusListenerAndWriter()
 	go fAC.listenOnBus()
 }
 
 func (fAC *fullyAssociativeCache) listenOnBus() {
-	for busMessage := range fAC.busListener {
+	for busMessage := range fAC.busStuff.BusListener {
 		index, ok := fAC.addressToIndex[busMessage.Address]
 		if ok {
 			switch busMessage.LineState {
@@ -49,46 +49,68 @@ func (fAC *fullyAssociativeCache) listenOnBus() {
 				fAC.sharedCase(index, busMessage)
 			}
 		} else {
-			fAC.busWriter <- true
+			fAC.busStuff.BusWriter <- true
 		}
 	}
 }
 
 //MESI functions
 func (fAC *fullyAssociativeCache) sharedCase(index int, busMessage bus.Message) {
+	fAC.storage[index].stateLocker.Lock()
+	defer fAC.storage[index].stateLocker.Unlock()
+
 	if fAC.storage[index].state == bus.Modify || fAC.storage[index].state == bus.Exclusive {
 		fAC.mainMemory.Store(busMessage.Address, fAC.storage[index].data)
 		fAC.storage[index].state = bus.Shared
 	}
-	fAC.busWriter <- true
+	fAC.busStuff.BusWriter <- true
 }
 
 func (fAC *fullyAssociativeCache) exclusiveCase(index int) {
+	fAC.storage[index].stateLocker.Lock()
+	defer fAC.storage[index].stateLocker.Unlock()
+
 	if fAC.storage[index].state == bus.NULL {
-		fAC.busWriter <- true
+		fAC.busStuff.BusWriter <- true
 	} else {
-		fAC.busWriter <- false
+		fAC.busStuff.BusWriter <- false
 	}
 }
 
 func (fAC *fullyAssociativeCache) modifyCase(index int, busMessage bus.Message) {
+	fAC.storage[index].stateLocker.Lock()
+	defer fAC.storage[index].stateLocker.Unlock()
+
 	if fAC.storage[index].state == bus.Modify {
 		fAC.mainMemory.Store(busMessage.Address, fAC.storage[index].data)
 	}
 	fAC.storage[index].state = bus.Invalid
-	fAC.busWriter <- true
+	fAC.busStuff.BusWriter <- true
 }
 
 //Load functions
 func (fAC *fullyAssociativeCache) Load(address mainMemory.Address) (mainMemory.Data, bool) {
+
 	line, exist := fAC.getExistingLine(address)
-	if exist && line.state != bus.Invalid {
-		return line.data, exist
+	if exist {
+		line.stateLocker.Lock()
+		defer line.stateLocker.Unlock()
+		if line.state == bus.Invalid {
+			fAC.NetworkBus.AskShared(fAC.busStuff.CacheNumber, address)
+			line.state = bus.Shared
+			data := fAC.mainMemory.Load(address)
+			line.data = data
+			return line.data, false
+		}
+		return line.data, true
 	}
 
-	fAC.networkBus.AskShared(fAC.cacheNumber, address)
-	data := fAC.mainMemory.Load(address)
+	line.stateLocker.Lock()
+	defer line.stateLocker.Unlock()
 
+	fAC.networkBus.AskShared(fAC.cacheNumber, address)
+	line.state = bus.Shared
+	data := fAC.mainMemory.Load(address)
 	if fAC.nextEmpty < len(fAC.storage) {
 		fAC.newAddressInLine(mainMemory.Address(fAC.nextEmpty), address, data)
 		fAC.nextEmpty++
@@ -97,14 +119,19 @@ func (fAC *fullyAssociativeCache) Load(address mainMemory.Address) (mainMemory.D
 
 	indexOfLRU := fAC.lruQueue.Back()
 	fAC.newAddressInLine(indexOfLRU, address, data)
-
 	return data, false
 }
 
 //Store functions
 func (fAC *fullyAssociativeCache) Store(address mainMemory.Address, newData mainMemory.Data) bool {
 	line, exist := fAC.getExistingLine(address)
-	if exist {
+
+	if fAC.NetworkBus.AskExclusive(fAC.busStuff.CacheNumber, address){
+		line.stateLocker.Lock()
+		line.state = bus.Exclusive
+		line.stateLocker.Unlock()
+	}
+	if exist && line.state == bus.Exclusive {
 		line.data = newData
 		return exist
 	}
@@ -122,13 +149,10 @@ func (fAC *fullyAssociativeCache) Store(address mainMemory.Address, newData main
 }
 
 func (fAC *fullyAssociativeCache) getExistingLine(address mainMemory.Address) (*FACacheLine, bool) {
-	for index := range fAC.storage {
-		line := &fAC.storage[index]
-
-		if line.address == address && line.state != bus.NULL {
-			fAC.lruQueue.Update(mainMemory.Address(index))
-			return line, true
-		}
+	index, ok := fAC.addressToIndex[address]
+	if ok {
+		fAC.lruQueue.Update(mainMemory.Address(index))
+		return line, true
 	}
 
 	return nil, false
@@ -136,15 +160,15 @@ func (fAC *fullyAssociativeCache) getExistingLine(address mainMemory.Address) (*
 
 func (fAC *fullyAssociativeCache) newAddressInLine(index mainMemory.Address, address mainMemory.Address, data mainMemory.Data) {
 	line := &fAC.storage[index]
-
 	if line.state == bus.Exclusive || line.state == bus.Modify {
 		oldAddress := line.address
 		oldData := line.data
 		fAC.mainMemory.Store(oldAddress, oldData)
+		delete(fAC.addressToIndex, oldAddress)
+
 	}
 
 	fAC.lruQueue.Update(index)
-	line.state = bus.Shared
 	line.address = address
 	line.data = data
 }

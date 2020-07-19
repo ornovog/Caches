@@ -6,7 +6,6 @@ import (
 )
 
 type LineState string
-
 const (
 	NULL      = ""
 	Modify    = "Modify"
@@ -28,15 +27,31 @@ type NetworkBus struct {
 	busLocker       sync.Mutex
 }
 
+type BusStuff struct {
+	CacheNumber    int
+	BusListener    chan Message
+	BusWriter      chan bool
+}
+
 func (nB *NetworkBus) Init(numOfCaches int) {
 	nB.busListeners = make([]chan Message, numOfCaches)
 	nB.busWriters = make([]chan bool, numOfCaches)
+
+	for i,_ := range nB.busListeners{
+		nB.busListeners[i] = make(chan Message, numOfCaches-1)
+		nB.busWriters[i] = make (chan bool, numOfCaches-1)
+	}
+
 }
 
-func (nB *NetworkBus) GetBusListenerAndWriter() (chan Message, chan bool, int) {
-	cacheNum := nB.currentCacheNum
+func (nB *NetworkBus) GetBusListenerAndWriter() BusStuff {
+	busStuff := BusStuff{
+		CacheNumber: nB.currentCacheNum,
+		BusListener: nB.busListeners[cacheNum],
+		BusWriter: nB.busWriters[cacheNum]}
+
 	nB.currentCacheNum++
-	return nB.busListeners[cacheNum], nB.busWriters[cacheNum], cacheNum
+	return busStuff
 }
 
 func (nB *NetworkBus) AskModify(cacheNumber int, address mainMemory.Address) {
